@@ -1,0 +1,157 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches:
+      - "*"
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+
+  draft:
+    runs-on: ubuntu-latest
+    environment: "Init Workflow"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: create draft release
+        uses: crabnebula-dev/cloud-release@v0.1.0
+        with:
+          command: release draft test-verso 0.0.1 --framework packager
+          api-key: ${{ secrets.CN_API_KEY }}
+
+  build-linux:
+    name: Build [linux]
+    needs: draft
+    runs-on: ubuntu-latest # We may want this to be older for wider libc compatibility
+    environment: "Init Workflow"
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Set env
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt install build-essential python3-pip ccache clang cmake curl \
+            g++ git gperf libdbus-1-dev libfreetype6-dev libgl1-mesa-dri \
+            libgles2-mesa-dev libglib2.0-dev libgstreamer-plugins-base1.0-dev \
+            gstreamer1.0-plugins-good libgstreamer-plugins-good1.0-dev \
+            gstreamer1.0-plugins-bad libgstreamer-plugins-bad1.0-dev \
+            gstreamer1.0-plugins-ugly gstreamer1.0-plugins-base \
+            libgstreamer-plugins-base1.0-dev gstreamer1.0-libav \
+            libgstrtspserver-1.0-dev gstreamer1.0-tools libges-1.0-dev \
+            libharfbuzz-dev liblzma-dev libunwind-dev libunwind-dev libvulkan1 \
+            libx11-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxmu-dev libxmu6 libegl1-mesa-dev llvm-dev m4 xorg-dev
+
+      - name: Install Cargo Packager
+        run: cargo install cargo-packager --locked
+
+      - name: Package the App
+        run: cargo packager --release --verbose
+
+      - name: Move assets to workdir
+        run: |
+          mv target/release/* .
+
+      - name: upload assets
+        uses: crabnebula-dev/cloud-release@v0.1.0
+        with:
+          command: release upload test-verso 0.0.1 --framework packager
+          api-key: ${{ secrets.CN_API_KEY }}
+
+
+  build-windows:
+    name: Build [windows]
+    needs: draft
+    runs-on: windows-latest
+    environment: "Init Workflow"
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Install scroop
+        uses: MinoruSekine/setup-scoop@v3
+
+      - name: Install dependencies
+        run: scoop install git python llvm cmake curl
+
+      - name: Install Cargo Packager
+        run: cargo install cargo-packager --locked
+
+      - name: Package the App
+        run: cargo packager --release --verbose
+
+      - name: Move assets to workdir
+        run: |
+          mv target/release/* .
+
+      - name: upload assets
+        uses: crabnebula-dev/cloud-release@v0.1.0
+        with:
+          command: release upload test-verso 0.0.1 --framework packager
+          api-key: ${{ secrets.CN_API_KEY }}
+
+  build-macos:
+    name: Build [macos]
+    needs: draft
+    runs-on: macos-latest
+    environment: "Init Workflow"
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Install dependencies
+        run: brew install cmake pkg-config
+
+      - name: Install Cargo Packager
+        run: cargo install cargo-packager --locked
+
+      - name: Package the App
+        run: cargo packager --release --verbose
+
+      - name: Move assets to workdir
+        run: |
+          mv target/release/* .
+
+      - name: upload assets
+        uses: crabnebula-dev/cloud-release@v0.1.0
+        with:
+          command: release upload test-verso 0.0.1 --framework packager
+          api-key: ${{ secrets.CN_API_KEY }}
+
+  publish:
+    needs: [build-linux, build-windows, build-macos]
+
+    runs-on: ubuntu-latest
+    environment: "Init Workflow"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: publish release
+        uses: crabnebula-dev/cloud-release@v0.1.0
+        with:
+          command: release publish test-verso 0.0.1 --framework packager
+          api-key: ${{ secrets.CN_API_KEY }}

@@ -17,6 +17,9 @@ use winit::{
 
 use crate::{prefs, resources, webview::WebView};
 
+#[cfg(feature = "packager")]
+use cargo_packager_resource_resolver::{current_format, resources_dir};
+
 /// Status of webview.
 #[derive(Clone, Copy, Debug, Default)]
 pub enum Status {
@@ -58,7 +61,14 @@ impl Verso {
             CompositeTarget::Fbo,
         );
 
+        #[cfg(not(feature = "packager"))]
         let demo_path = std::env::current_dir().unwrap().join("demo.html");
+        // For production builds, use Resourse Resolver for demo file
+        #[cfg(feature = "packager")]
+        let demo_path = resources_dir(current_format().unwrap())
+            .unwrap()
+            .join("demo.html");
+
         let url = ServoUrl::from_file_path(demo_path.to_str().unwrap()).unwrap();
         init_servo
             .servo
