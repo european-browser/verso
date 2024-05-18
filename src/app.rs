@@ -48,7 +48,7 @@ impl Verso {
             Some(String::from(
                 "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0",
             )),
-            CompositeTarget::Fbo,
+            CompositeTarget::Window,
         );
         window.set_webview_id(init_servo.browser_id);
 

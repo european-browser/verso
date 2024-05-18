@@ -1,7 +1,6 @@
 use std::{
     mem::{size_of, size_of_val},
     rc::Rc,
-    sync::atomic::AtomicBool,
 };
 
 use servo::gl;
@@ -16,7 +15,6 @@ pub struct Painter {
     gl: Rc<dyn gl::Gl>,
     program: gl::GLuint,
     vao: gl::GLuint,
-    destroyed: AtomicBool,
 }
 
 impl Painter {
@@ -30,12 +28,24 @@ impl Painter {
         gl.link_program(program);
         gl.use_program(program);
         let vao = create_vao(&gl);
-        Ok(Painter {
-            gl,
-            program,
-            vao,
-            destroyed: AtomicBool::new(false),
-        })
+        Ok(Painter { gl, program, vao })
+    }
+
+    /// Execute full screen drawing.
+    pub fn draw(&self) {
+        let gl = &self.gl;
+        // gl.clear(gl::COLOR_BUFFER_BIT);
+        gl.use_program(self.program);
+        gl.bind_vertex_array(self.vao);
+        gl.draw_arrays(gl::TRIANGLES, 0, 6);
+        gl.bind_vertex_array(0);
+    }
+}
+
+impl Drop for Painter {
+    fn drop(&mut self) {
+        self.gl.delete_program(self.program);
+        self.gl.delete_buffers(&[self.vao]);
     }
 }
 
@@ -73,6 +83,7 @@ fn create_vao(gl: &Rc<dyn gl::Gl>) -> gl::GLuint {
     let vao = gl.gen_vertex_arrays(1)[0];
     gl.bind_vertex_array(vao);
 
+    // TODO Should we free this too?
     let vbo = gl.gen_buffers(1)[0];
     gl.bind_buffer(gl::ARRAY_BUFFER, vbo);
     gl.buffer_data_untyped(
