@@ -11,4 +11,7 @@ pub enum Error {
     /// A general error that may occur while running the Winit event loop.
     #[error(transparent)]
     EventLoopError(#[from] winit::error::EventLoopError),
+    /// Error related to OpenGL shader compilation.
+    #[error("Failed to compiler shader in painter module.")]
+    CompileShader,
 }

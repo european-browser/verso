@@ -8,6 +8,8 @@
 pub mod app;
 /// Error and result types.
 pub mod errors;
+/// Utilities to paint custom shaders.
+pub mod painter;
 /// Utilities to read options and preferences.
 pub mod prefs;
 /// Utilities to access resource files

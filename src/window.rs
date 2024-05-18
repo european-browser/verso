@@ -6,7 +6,7 @@ use servo::{
         AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
     },
     embedder_traits::{Cursor, EmbedderMsg},
-    euclid::{Point2D, Scale, Size2D, UnknownUnit},
+    euclid::{Point2D, Scale, Size2D},
     gl,
     msg::constellation_msg::WebViewId,
     rendering_context::RenderingContext,
